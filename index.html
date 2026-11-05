@@ -301,8 +301,7 @@ $("#dl").onclick=()=>{
   const a=document.createElement("a");a.href=url;a.download="thalassemia-doctor-visit.html";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 };
 
-// Media – correct paths matching the files you provided
-// Media – video + podcasts (all files included in /media so they play immediately)
+// Bundled video and podcasts, served from the media directory.
 const VIDEO = {
   id: "v1",
   kind: "video",
@@ -324,7 +323,8 @@ function makeCard(item, kind){
     <h3>${esc(item.title)}</h3>
     <p class="sm muted">${esc(item.desc)}</p>
     <div class="player"></div>
-    <p class="sm muted status" style="margin-top:.4rem"></p>
+    <p class="sm muted status" role="status" style="margin-top:.4rem"></p>
+    <a class="btn" href="${esc(item.src)}" download>Download ${kind === "video" ? "video" : "episode"}</a>
   </article>`;
 }
 
@@ -334,8 +334,19 @@ $("#podcast-slots").innerHTML = PODCASTS.map(p => makeCard(p, "audio")).join("")
 function play(card, src){
   const kind = card.dataset.kind;
   if(src){
-    card.querySelector(".player").innerHTML = `<${kind} controls preload="metadata" playsinline src="${esc(src)}"></${kind}>`;
-    card.querySelector(".status").textContent = "";
+    const player = document.createElement(kind);
+    player.controls = true;
+    player.preload = "metadata";
+    player.setAttribute("aria-label", card.querySelector("h3").textContent);
+    if (kind === "video") player.setAttribute("playsinline", "");
+    const status = card.querySelector(".status");
+    player.addEventListener("error", () => {
+      status.textContent = "Unable to play this file. Try the download link below to open it on your device.";
+    });
+    player.addEventListener("loadedmetadata", () => { status.textContent = ""; });
+    player.src = src;
+    card.querySelector(".player").replaceChildren(player);
+    status.textContent = "";
   } else {
     card.querySelector(".player").innerHTML = `<p class="muted sm" style="border:1px dashed var(--line);border-radius:.75rem;padding:1.5rem;text-align:center">Media not found.</p>`;
   }
